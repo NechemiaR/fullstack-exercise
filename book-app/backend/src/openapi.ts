@@ -30,5 +30,23 @@ export const openApiSpec = {
                 },
             },
         },
+        "/books/{id}": {
+            delete: {
+                summary: "Delete a book by id",
+                parameters: [
+                    {
+                        name: "id",
+                        in: "path",
+                        required: true,
+                        schema: { type: "integer" },
+                    },
+                ],
+                responses: {
+                    "204": { description: "Book deleted" },
+                    "400": { description: "Invalid id" },
+                    "404": { description: "Book not found" },
+                },
+            },
+        },
     },
 };
