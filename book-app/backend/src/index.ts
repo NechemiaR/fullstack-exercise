@@ -8,6 +8,11 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+if (!AI_SERVICE_URL) {
+  throw new Error("AI_SERVICE_URL is required");
+}
+
 app.use(express.json());
 app.use(cors());
 
@@ -28,10 +33,20 @@ app.post("/books", async (req: Request, res: Response) => {
         if (!title || !author) {
             return res.status(400).json({ error: "Title and author are required" });
         }
-        const result = await pool.query("INSERT INTO books (title, author) VALUES ($1, $2) RETURNING *",
-        [title, author]
-);
-return res.status(201).json(result.rows[0]);
+        const result = await pool.query(
+            "INSERT INTO books (title, author) VALUES ($1, $2) RETURNING *",
+            [title, author]
+        );
+        const book = result.rows[0];
+
+        const aiResponse = await fetch(`${AI_SERVICE_URL}/analyze`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, author }),
+        });
+        const analysis = await aiResponse.json();
+
+        return res.status(201).json({ ...book, analysis });
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });
     }
