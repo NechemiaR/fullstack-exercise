@@ -10,6 +10,48 @@ services:
       - "5432:5432"
     volumes:
       - book-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookuser -d books"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ai-service:
+    build: ./ai-service
+    container_name: book-ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-service:/app
+
+  backend:
+    build: ./backend
+    container_name: book-backend
+    environment:
+      DATABASE_URL: postgres://bookuser:bookpass@db:5432/books
+      AI_SERVICE_URL: http://ai-service:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/migrations:/app/migrations
+
+  frontend:
+    build: ./frontend
+    container_name: book-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
 
 volumes:
   book-db-data:
